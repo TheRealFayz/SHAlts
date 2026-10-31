@@ -2,7 +2,7 @@
 
 An alt manager for OctoWoW and other 1.12 clients. It keeps track of everything your characters own and lets you look at any of them from one window, no matter which character you are playing.
 
-Made by Fayz, styled to match SHPlates.
+You can also download IRC from OctoWoW's [Gitea](https://octowow.st/git/Fayz/SHalts).
 
 ## What it tracks
 
@@ -95,7 +95,3 @@ A removed alt stays removed, even with the shared file, until you play that char
 
 1. Download the addon and put the `SHAlts` folder in `Interface\AddOns`. If you downloaded a zip from GitHub, the folder must be named exactly `SHAlts`, so remove any `-main` from the end of its name.
 2. Start the game and log in. The minimap button appears right away.
-
-## Links
-
-Source and updates: https://github.com/TheRealFayz/SHalts
