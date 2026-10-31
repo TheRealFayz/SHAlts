@@ -25,6 +25,7 @@ local TABS = {
 	{ key = "profs",    tip = "Professions", icon = "Interface\\Icons\\Trade_Alchemy" },
 	{ key = "gear",     tip = "Gear",        icon = "Interface\\Icons\\INV_Chest_Plate07" },
 	{ key = "cd",       tip = "Cooldowns",   icon = "Interface\\Icons\\INV_Misc_PocketWatch_01" },
+	{ key = "irc",      tip = "IRC: instance resets and raid lockouts", icon = "Interface\\Icons\\Spell_Nature_NatureTouchGrow" },
 	{ key = "info",     tip = "Reputation, PvP and time played", icon = "Interface\\Icons\\INV_Misc_Note_01" },
 	{ key = "settings", tip = "Settings",    icon = "Interface\\Icons\\INV_Misc_Gear_01" },
 }
@@ -124,12 +125,12 @@ logoFrame:SetPoint("TOPLEFT", Config, "TOPLEFT", -12, 12)
 logoFrame:SetFrameLevel(Config:GetFrameLevel() + 5)
 local logo = logoFrame:CreateTexture(nil, "ARTWORK")
 logo:SetAllPoints(logoFrame)
-logo:SetTexture(S.MEDIA .. "Portrait")
+logo:SetTexture(S.MEDIA .. "Logo")
 S.AddSpin(logo, logoFrame, "logo")
 -- the ring draws over the logo so their overlap hides the seam
 local logoRing = logoFrame:CreateTexture(nil, "OVERLAY")
 logoRing:SetAllPoints(logoFrame)
-logoRing:SetTexture(S.MEDIA .. "PortraitRing")
+logoRing:SetTexture(S.MEDIA .. "LogoRing")
 S.AddSpin(logoRing, logoFrame, "ring")
 
 -- header sits a little right of center to balance the logo
@@ -300,6 +301,7 @@ end
 -- shift-click puts the item link in chat, ctrl-click tries it on
 list.click = function(row)
 	local d = row.data
+	if d and d.action then d.action(); return end
 	if not d or not d.id then return end
 	local it = S.db.items[d.id]
 	if not it or not it.n then return end
@@ -564,7 +566,7 @@ local function Note(text, x, y, w)
 	return fs
 end
 
-SectionLabel("Window", -10)
+SectionLabel("Window", -8)
 
 -- the stock slider look; if this client lacks that template, a plain bar is used
 local okSlider, alphaSlider = pcall(CreateFrame, "Slider", "SHAltsAlphaSlider", settings, "OptionsSliderTemplate")
@@ -575,7 +577,7 @@ if not okSlider or not alphaSlider then
 	alphaSlider:SetBackdropColor(0, 0, 0, .6)
 	alphaSlider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
 end
-alphaSlider:SetPoint("TOPLEFT", settings, "TOPLEFT", 24, -44)
+alphaSlider:SetPoint("TOPLEFT", settings, "TOPLEFT", 24, -40)
 alphaSlider:SetWidth(220); alphaSlider:SetHeight(16)
 alphaSlider:SetMinMaxValues(.2, 1)
 alphaSlider:SetValueStep(.05)
@@ -588,33 +590,35 @@ alphaSlider:SetScript("OnValueChanged", function()
 	UI.ApplyLook()
 end)
 
-local sortLabel = Note("Sort alts by", 24, -72, 100)
-local sortName = Check("SHAltsSortName", "Name", 20, -86, function() S.db.sort = "name"; S.UIChanged() end)
-local sortLevel = Check("SHAltsSortLevel", "Level", 110, -86, function() S.db.sort = "level"; S.UIChanged() end)
-Button("SHAltsResetSize", "Reset window size", 20, -118, 140, function() UI.SetScale(1) end)
-Note("You can also drag the corner of the window to resize it.", 168, -122, 190)
+local sortLabel = Note("Sort alts by", 24, -70, 80)
+local sortName = Check("SHAltsSortName", "Name", 100, -64, function() S.db.sort = "name"; S.UIChanged() end)
+local sortLevel = Check("SHAltsSortLevel", "Level", 170, -64, function() S.db.sort = "level"; S.UIChanged() end)
+Button("SHAltsResetSize", "Reset window size", 20, -92, 140, function() UI.SetScale(1) end)
+Note("You can also drag the window's corner.", 168, -97, 190)
 
-SectionLabel("Features", -158)
-local minimapCheck = Check("SHAltsMinimapCheck", "Show the minimap button", 20, -180, function(on)
+SectionLabel("Features", -126)
+local minimapCheck = Check("SHAltsMinimapCheck", "Show the minimap button", 20, -148, function(on)
 	S.db.minimapHidden = not on
 	if S.UpdateMinimapButton then S.UpdateMinimapButton() end
 end)
-local alertCheck = Check("SHAltsAlertCheck", "Cooldown ready alerts", 20, -206, function(on) S.db.alert = on end)
-local syncCheck = Check("SHAltsSyncCheck", "Share alts between accounts", 20, -232, function(on)
+local alertCheck = Check("SHAltsAlertCheck", "Cooldown ready alerts", 20, -172, function(on) S.db.alert = on end)
+local resetAlertCheck = Check("SHAltsResetAlertCheck", "Reset slot sound alerts", 20, -196, function(on) S.db.resetAlerts = on end)
+local announceCheck = Check("SHAltsAnnounceCheck", "Announce resets to party or raid", 20, -220, function(on) S.db.resetAnnounce = on end)
+local syncCheck = Check("SHAltsSyncCheck", "Share alts between accounts", 20, -244, function(on)
 	S.db.sync = on
 	if on and S.Sync then S.Sync() end
 end)
-local syncNote = Note("", 44, -256, 316)
-Button("SHAltsTestAlert", "Test alert", 20, -280, 110, function() S.ShowAlertPreview() end)
-Button("SHAltsRescan", "Rescan this character", 140, -280, 160, function()
+local syncNote = Note("", 44, -268, 316)
+Button("SHAltsTestAlert", "Test alert", 20, -288, 110, function() S.ShowAlertPreview() end)
+Button("SHAltsRescan", "Rescan this character", 140, -288, 160, function()
 	S.ScanAll()
 	S.Print("scanned " .. UnitName("player"))
 end)
 
-SectionLabel("Remove an alt", -318)
+SectionLabel("Remove an alt", -322)
 local delBox = CreateFrame("EditBox", "SHAltsDeleteBox", settings, "InputBoxTemplate")
 delBox:SetWidth(180); delBox:SetHeight(20)
-delBox:SetPoint("TOPLEFT", settings, "TOPLEFT", 26, -342)
+delBox:SetPoint("TOPLEFT", settings, "TOPLEFT", 26, -344)
 delBox:SetAutoFocus(false)
 delBox:SetMaxLetters(24)
 local delMsg = Note("", 24, -368, 330)
@@ -630,7 +634,7 @@ local function DoDelete()
 	end
 	delBox:ClearFocus()
 end
-Button("SHAltsDeleteButton", "Delete", 214, -340, 80, DoDelete)
+Button("SHAltsDeleteButton", "Delete", 214, -342, 80, DoDelete)
 delBox:SetScript("OnEnterPressed", DoDelete)
 delBox:SetScript("OnEscapePressed", function() this:ClearFocus() end)
 delBox:SetScript("OnTextChanged", function() if this:GetText() ~= "" then delMsg:SetText("") end end)
@@ -644,6 +648,8 @@ local function RefreshSettings()
 	sortLevel:SetChecked(byLevel and 1 or nil)
 	minimapCheck:SetChecked(not S.db.minimapHidden and 1 or nil)
 	alertCheck:SetChecked(S.db.alert and 1 or nil)
+	resetAlertCheck:SetChecked(S.db.resetAlerts and 1 or nil)
+	announceCheck:SetChecked(S.db.resetAnnounce and 1 or nil)
 	syncCheck:SetChecked(S.db.sync and 1 or nil)
 	if S.SyncAvailable and S.SyncAvailable() then
 		syncNote:SetText("Alts from your other accounts show up here too.")

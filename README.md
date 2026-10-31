@@ -13,6 +13,8 @@ Made by Fayz, styled to match SHPlates.
 - **Gear**, what each character has equipped
 - **Cooldowns**, for every alt at once: Salt Shaker, transmutes, Mooncloth, Shadowcloth and Spellcloth
 - **Reputation, PvP rank, honor and time played**
+- **Instance resets**, the 5 per hour limit, for each character
+- **Raid lockouts**, so you can see at a glance which characters are locked
 
 Everything is recorded automatically while you play. There is nothing to save and no command to run.
 
@@ -20,10 +22,29 @@ Everything is recorded automatically while you play. There is nothing to save an
 
 Open the window with the minimap button or `/shalts`. Pick an alt from the dropdown at the top, then use the tabs down the right edge to switch between what you want to see. The search box looks through every alt at once, so you can find out who is holding that stack of Runecloth or who knows a recipe.
 
+- Hover the minimap button for your reset timers, raid lockouts and any ready cooldowns.
 - Hover an item for its tooltip.
 - Shift-click an item to link it in chat.
 - Ctrl-click an item to try it on.
 - Drag the corner of the window to resize it, right-click the corner to reset.
+
+## Instance resets and raid lockouts
+
+The IRC tab is the Instance Reset Counter built into SHAlts. The server allows 5 instance resets per hour, and each character keeps its own five timers.
+
+- Each timer counts down from 60:00. Reset 1 is always the oldest. When it runs out it clears and the rest move up.
+- A timer starts only when the game confirms the reset, so a reset that fails because someone is still inside starts nothing.
+- It also counts resets done by your group leader ("Blackrock Depths has been reset by Name"), so members get a timer too.
+- One reset action is one timer, even if it resets several dungeons at once. All the dungeon names are shown on that one timer.
+- Coin you loot inside the instance is added to the newest timer, and the Lockout total adds up all five.
+- Timers keep counting while you are logged out.
+- Pick any character from the dropdown to see its timers. The Reset dungeon and Reset all timers rows work for the character you are playing.
+- The same list of timers shows when you hover the minimap button, counting down live.
+- When a slot frees up or you hit the cap, you get a sound and the minimap button flashes. If you lead the group, the reset is announced in party or raid chat. Both can be turned off in Settings.
+
+Raid lockouts are listed under the timers for the selected character, and the **All characters** list below shows who is locked and who is free. The minimap hover also lists everyone who is raid locked. A character's lockouts are recorded when you log in on it.
+
+If you also have the separate IRC addon installed, turn one of them off. They would both count the same resets.
 
 ## Cooldown alerts
 
@@ -47,6 +68,7 @@ Open the Settings tab (the gear) to:
 - sort alts by name or level
 - show or hide the minimap button
 - turn cooldown alerts on or off, or test one
+- turn the reset sound alerts and the reset announcements on or off
 - turn sharing between accounts on or off
 - rescan the current character
 - remove an alt: type the name and press Delete
@@ -71,7 +93,7 @@ A removed alt stays removed, even with the shared file, until you play that char
 
 ## Install
 
-1. Download the addon and put the `SHAlts` folder in `Interface\AddOns`.
+1. Download the addon and put the `SHAlts` folder in `Interface\AddOns`. If you downloaded a zip from GitHub, the folder must be named exactly `SHAlts`, so remove any `-main` from the end of its name.
 2. Start the game and log in. The minimap button appears right away.
 
 ## Links

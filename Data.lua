@@ -245,6 +245,99 @@ local function InfoLines(c)
 end
 
 -------------------------------------------------------------------------------
+-- IRC tab: instance reset timers and raid lockouts
+-------------------------------------------------------------------------------
+local function LockTip(c)
+	local tip = { S.ColoredName(c) }
+	local locks = S.LockView(c)
+	for i = 1, table.getn(locks) do
+		table.insert(tip, locks[i].n .. "  |cffaaaaaa" .. S.FormatDuration(locks[i].e - time()) .. "|r")
+	end
+	if table.getn(locks) == 0 then
+		if c.locksSeen then
+			table.insert(tip, "|cff40ff40Not locked to any raid|r")
+		else
+			table.insert(tip, "|cff888888Log in on this character to record its lockouts|r")
+		end
+	end
+	return tip
+end
+
+local function IRCLines(c, key)
+	local lines = {}
+	local now = time()
+	local view = S.ResetView(c)
+	table.insert(lines, Header("Instance resets", table.getn(view) .. " / " .. S.MAX_RESETS .. " used"))
+
+	local total = 0
+	for i = 1, S.MAX_RESETS do
+		local e = view[i]
+		if e then
+			local rem = S.RESET_DURATION - (now - e.t)
+			total = total + (e.coin or 0)
+			table.insert(lines, {
+				text = "|cffffffffReset " .. i .. "|r   |cff33ff99" .. S.FormatClock(rem) .. "|r",
+				right = S.MoneyGSC(e.coin),
+				tip = { e.name or "Instance reset", "Frees up in " .. S.FormatClock(rem), "Coin looted: " .. S.MoneyGSC(e.coin) },
+			})
+		else
+			table.insert(lines, { text = "|cff777777Reset " .. i .. "   cleared|r", right = "" })
+		end
+	end
+	table.insert(lines, { text = "|cffffd100Lockout total|r", right = S.MoneyGSC(total) })
+
+	-- the game only lets you reset instances for the character you are playing
+	if key == S.CharKey() then
+		table.insert(lines, {
+			text = "|cffffd100Reset dungeon|r", right = "|cff888888click|r", action = function() S.DoDungeonReset() end,
+			tip = { "Reset dungeon", "Asks the game to reset your instances.", "A timer starts only if the game confirms it." },
+		})
+		table.insert(lines, {
+			text = "|cffffd100Reset all timers|r", right = "|cff888888click|r", action = function() S.ResetAllTimers() end,
+			tip = { "Reset all timers", "Clears the five timers for this character." },
+		})
+	else
+		table.insert(lines, Note("Select the character you are playing to reset instances."))
+	end
+
+	local locks = S.LockView(c)
+	local right = "|cff40ff40free|r"
+	if table.getn(locks) > 0 then right = "|cffff6060" .. table.getn(locks) .. " locked|r" end
+	table.insert(lines, Header("Raid lockouts", right))
+	for i = 1, table.getn(locks) do
+		table.insert(lines, {
+			text = locks[i].n, right = S.FormatDuration(locks[i].e - now),
+			tip = { locks[i].n, "Resets in " .. S.FormatDuration(locks[i].e - now), "|cffaaaaaa" .. date("%Y-%m-%d %H:%M", locks[i].e) .. "|r" },
+		})
+	end
+	if table.getn(locks) == 0 then
+		if c.locksSeen then
+			table.insert(lines, Note("Not locked to any raid."))
+		else
+			table.insert(lines, Note("Log in on this character to record its lockouts."))
+		end
+	end
+
+	-- everyone at a glance
+	table.insert(lines, Header("All characters"))
+	local chars = S.SortedChars()
+	for i = 1, table.getn(chars) do
+		local e = chars[i]
+		local n = table.getn(S.LockView(e.c))
+		local r
+		if not e.c.locksSeen then
+			r = "|cff888888unknown|r"
+		elseif n > 0 then
+			r = "|cffff6060" .. n .. " locked|r"
+		else
+			r = "|cff40ff40free|r"
+		end
+		table.insert(lines, { text = S.ColoredName(e.c), right = r, tip = LockTip(e.c) })
+	end
+	return lines
+end
+
+-------------------------------------------------------------------------------
 -- Cooldowns (all characters)
 -------------------------------------------------------------------------------
 local function CooldownRows()
@@ -421,7 +514,7 @@ end
 -------------------------------------------------------------------------------
 -- Entry point for the window
 -------------------------------------------------------------------------------
--- tab: "bags" | "bank" | "mail" | "profs" | "gear" | "cd" | "info" | "settings"
+-- tab: "bags" | "bank" | "mail" | "profs" | "gear" | "cd" | "irc" | "info" | "settings"
 function S.BuildLines(tab, key, searchText)
 	if searchText and searchText ~= "" then return S.SearchLines(searchText) end
 	if tab == "cd" then return CooldownLines() end
@@ -441,6 +534,7 @@ function S.BuildLines(tab, key, searchText)
 	elseif tab == "gear" then body = GearLines(c)
 	elseif tab == "mail" then body = MailLines(c)
 	elseif tab == "info" then body = InfoLines(c)
+	elseif tab == "irc" then body = IRCLines(c, key)
 	else body = BagLines(c) end
 
 	local lines = { head }

@@ -125,6 +125,21 @@ function S.SyncSerialize()
 			}, "|"))
 		end
 
+		local tl = {}
+		for i = 1, table.getn(c.resets or {}) do
+			local e = c.resets[i]
+			table.insert(tl, Num(e.t) .. ":" .. Esc(e.name) .. ":" .. Num(e.coin))
+		end
+		if table.getn(tl) > 0 then table.insert(out, "T|" .. table.concat(tl, ",")) end
+
+		local ll = {}
+		for i = 1, table.getn(c.locks or {}) do
+			local l = c.locks[i]
+			table.insert(ll, Esc(l.n) .. ":" .. Num(l.id) .. ":" .. Num(l.e))
+		end
+		if table.getn(ll) > 0 then table.insert(out, "L|" .. table.concat(ll, ",")) end
+		if c.locksSeen then table.insert(out, "O|" .. Num(c.locksSeen)) end
+
 		local rl = {}
 		for i = 1, table.getn(c.rep or {}) do
 			local r = c.rep[i]
@@ -195,7 +210,7 @@ function S.SyncParse(text)
 				bagUsed = tonumber(f[10]) or 0, bagTotal = tonumber(f[11]) or 0,
 				bankUsed = tonumber(f[12]) or 0, bankTotal = tonumber(f[13]) or 0,
 				bags = {}, bank = {}, gear = {}, skills = {}, recipes = {}, cd = {},
-				mail = {}, rep = {}, pvp = {},
+				mail = {}, rep = {}, pvp = {}, resets = {}, locks = {},
 			}
 			local bs = tonumber(f[14])
 			if bs and bs > 0 then cur.bankSeen = bs end
@@ -257,6 +272,26 @@ function S.SyncParse(text)
 					table.insert(cur.rep, { n = Unesc(p[1]), s = tonumber(p[2]) or 0, v = tonumber(p[3]) or 0, m = tonumber(p[4]) or 0 })
 				end
 			end
+		elseif tag == "T" and cur then
+			for _, part in ipairs(Split(f[2] or "", ",")) do
+				local p = Split(part, ":")
+				local t = tonumber(p[1])
+				if t then
+					local name = Unesc(p[2] or "")
+					if name == "" then name = nil end
+					table.insert(cur.resets, { t = t, name = name, coin = tonumber(p[3]) or 0 })
+				end
+			end
+		elseif tag == "L" and cur then
+			for _, part in ipairs(Split(f[2] or "", ",")) do
+				local p = Split(part, ":")
+				local e = tonumber(p[3])
+				if p[1] and p[1] ~= "" and e then
+					table.insert(cur.locks, { n = Unesc(p[1]), id = tonumber(p[2]) or 0, e = e })
+				end
+			end
+		elseif tag == "O" and cur then
+			cur.locksSeen = tonumber(f[2])
 		elseif tag == "I" then
 			local id = tonumber(f[2])
 			if id and f[3] and f[3] ~= "" then

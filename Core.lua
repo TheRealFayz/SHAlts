@@ -81,6 +81,8 @@ local DEFAULTS = {
 	sort = "name",
 	alert = true,
 	sync = true,
+	resetAlerts = true,    -- sound and flash when a reset slot frees up or the cap is hit
+	resetAnnounce = true,  -- tell the party or raid about resets when you lead
 	usedSeconds = 0,       -- time SHAlts has been in use, for the one-time star ask
 	starAsked = false,
 }
@@ -242,6 +244,8 @@ local function Run(msg)
 		else
 			for i = 1, table.getn(rows) do S.Print(rows[i]) end
 		end
+	elseif cmd == "resetdebug" then
+		S.ToggleResetDebug()
 	elseif cmd == "star" then
 		S.ShowStarPopup(false)
 	elseif cmd == "debug" then

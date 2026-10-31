@@ -12,3 +12,4 @@ UI.lua
 Minimap.lua
 Star.lua
 Alert.lua
+Resets.lua

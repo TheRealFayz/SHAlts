@@ -23,7 +23,7 @@ function S.GetChar()
 	local key = S.CharKey()
 	local c = S.db.chars[key]
 	if not c then
-		c = { bags = {}, bank = {}, gear = {}, skills = {}, recipes = {}, cd = {}, mail = {}, rep = {}, pvp = {} }
+		c = { bags = {}, bank = {}, gear = {}, skills = {}, recipes = {}, cd = {}, mail = {}, rep = {}, pvp = {}, resets = {}, locks = {} }
 		S.db.chars[key] = c
 	end
 	c.name = UnitName("player")
@@ -31,6 +31,8 @@ function S.GetChar()
 	if not c.mail then c.mail = {} end
 	if not c.rep then c.rep = {} end
 	if not c.pvp then c.pvp = {} end
+	if not c.resets then c.resets = {} end
+	if not c.locks then c.locks = {} end
 	return c, key
 end
 
