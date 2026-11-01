@@ -88,7 +88,8 @@ local DEFAULTS = {
 }
 
 S.On("ADDON_LOADED", function(name)
-	if name ~= "SHAlts" then return end
+	-- the folder may be named SHalts or SHAlts (or end in -main from a zip), so ignore case
+	if not name or not string.find(string.lower(name), "^shalts") then return end
 	if type(SHAltsDB) ~= "table" then SHAltsDB = {} end
 	local db = SHAltsDB
 	for k, v in pairs(DEFAULTS) do

@@ -58,6 +58,10 @@ end
 -- Basic info
 -------------------------------------------------------------------------------
 function S.ScanInfo()
+	-- while the game is still loading (or shutting down) the player reports level 0;
+	-- recording that would wipe the real data, so wait for the next scan
+	local lvl = UnitLevel("player")
+	if not lvl or lvl < 1 then return end
 	local c = S.GetChar()
 	local _, class = UnitClass("player")
 	c.class = class
@@ -110,6 +114,8 @@ local function SetCooldown(c, name, endsAt)
 end
 
 function S.ScanBags()
+	-- same: a character always has a backpack, so zero slots means "not loaded yet"
+	if not GetContainerNumSlots or (GetContainerNumSlots(0) or 0) < 1 then return end
 	local c = S.GetChar()
 	local shaker = false
 	local counts, used, total = ScanContainers({ 0, 1, 2, 3, 4 }, function(id, bag, slot)
@@ -551,12 +557,24 @@ end
 
 S.On("PLAYER_LOGIN", function()
 	-- bag and skill data is not always ready the moment we log in
-	S.After(3, function()
+	-- On a slow or busy client (two games loading at once) the character can
+	-- still report level 0, no gold and no bag slots a few seconds after login.
+	-- Wait until the level is real, then scan again a little later as a safety net.
+	local tries = 0
+	local function FirstScan()
+		tries = tries + 1
+		local lvl = UnitLevel("player")
+		if (not lvl or lvl < 1) and tries < 20 then
+			S.After(2, FirstScan)
+			return
+		end
 		S.ready = true
 		S.ScanAll()
 		S.selected = S.CharKey()
 		S.DataChanged()
-	end)
+		S.After(15, function() S.ScanAll() end)
+	end
+	S.After(3, FirstScan)
 	-- time played, then again now and then; rank and honor change slowly too
 	S.After(8, function() S.RequestPlayed() end)
 	local function Periodic()

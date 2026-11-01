@@ -23,6 +23,8 @@ local KEEP_ALERTED = 14 * 86400   -- how long an announced cooldown is remembere
 local lastError
 local lastText   -- the file as we last read or wrote it, so an unchanged file is not parsed again
 
+function S.SyncForget() lastText = nil end
+
 function S.SyncAvailable()
 	return type(ImportFile) == "function" and type(ExportFile) == "function"
 end
@@ -341,7 +343,8 @@ function S.SyncMerge(chars, items, tombs, flags)
 		local have = db.chars[key]
 		local tomb = db.deleted[key]
 		local removed = tomb and tomb >= (c.seen or 0)
-		if key ~= mine and not removed and (not have or (have.seen or 0) < (c.seen or 0)) then
+		local empty = (c.level or 0) < 1 and have and (have.level or 0) > 0
+		if key ~= mine and not removed and not empty and (not have or (have.seen or 0) < (c.seen or 0)) then
 			db.chars[key] = c
 			added = added + 1
 		end
@@ -456,10 +459,8 @@ end)
 -- last write on the way out; pcall so a hiccup here can never error at logout
 S.On("PLAYER_LOGOUT", function()
 	if S.ready then
-		pcall(function()
-			S.ScanInfo()
-			S.ScanBags()
-			S.Sync()
-		end)
+		-- no rescan here: while logging out the game reports empty bags and level 0.
+		-- The data is already current from the events during play.
+		pcall(S.Sync)
 	end
 end)
