@@ -106,10 +106,11 @@ Stars are how other players find it, and they tell me it is worth keeping up. Bu
 
 ## More addons by Fayz
 
-All free, all for OctoWoW and other 1.12 clients. A star on any of them is appreciated.
+All for OctoWoW and other 1.12 clients. A star on any of them is appreciated.
 
 - **[SHPlates](https://github.com/TheRealFayz/SHPlates)** is a highly customizable nameplate addon. Server threat, cast bars, debuff timers, combo points, raid marks and per-spec settings. Know who has aggro before the mob gets to your healer.
 - **[TotemNesia](https://github.com/TheRealFayz/TotemNesia)** is a totem management addon for Shaman.
 - **[Arcanum](https://github.com/TheRealFayz/Arcanum)** helps Mages manage their spells and items.
 - **[AutoSpam](https://github.com/TheRealFayz/AutoSpam)** posts your messages to chat channels at the interval you choose, from 1 to 10 minutes.
-- **[IRC](https://github.com/TheRealFayz/IRC)** is the original Instance Reset Counter that now lives inside SHAlts as the IRC tab.
+- **[BigTimer](https://github.com/TheRealFayz/BigTimer)** is a see-through toolbar for starting BigWigs pull timers without writing macros, with built-in raid target marking.
+- **[TimeToDrink](https://github.com/TheRealFayz/TimeToDrink)** tells the tank when the healer is low on mana. It watches the healer you choose and posts a warning to party chat when their mana drops below your threshold.
