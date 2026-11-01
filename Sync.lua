@@ -16,10 +16,12 @@ local S = SHAlts
 
 local FILE = "SHAltsSync"
 local HEADER = "SHALTS"
-local PUSH_EVERY = 30   -- seconds between writes while data keeps changing
+local PUSH_EVERY = 10   -- seconds between writes while data keeps changing
+local POLL_EVERY = 5    -- seconds between looks at the shared file for changes from another client
 local KEEP_ALERTED = 14 * 86400   -- how long an announced cooldown is remembered
 
 local lastError
+local lastText   -- the file as we last read or wrote it, so an unchanged file is not parsed again
 
 function S.SyncAvailable()
 	return type(ImportFile) == "function" and type(ExportFile) == "function"
@@ -374,12 +376,16 @@ function S.SyncPull()
 	-- a missing file may raise an error instead of returning nil
 	local ok, text = pcall(ImportFile, FILE)
 	if not ok or type(text) ~= "string" or text == "" then return true end
+	if text == lastText then return true end
+	lastText = text
 	local ok2, chars, items, tombs, flags = pcall(S.SyncParse, text)
 	if not ok2 then Fail(chars); return false end
 	if not chars then Fail(items); return false end
 	local ok3, err = pcall(S.SyncMerge, chars, items, tombs, flags)
 	if not ok3 then Fail(err); return false end
 	lastError = nil
+	-- another client brought in newer data: show it right away
+	if err and err > 0 then S.UIChanged() end
 	return true
 end
 
@@ -391,8 +397,10 @@ function S.Sync()
 	-- other accounts take our newest data rather than an older copy
 	local me = S.db.chars[S.CharKey()]
 	if me and S.ready then me.seen = time() end
-	local ok, err = pcall(function() ExportFile(FILE, S.SyncSerialize()) end)
+	local out = S.SyncSerialize()
+	local ok, err = pcall(function() ExportFile(FILE, out) end)
 	if not ok then Fail(err); return false end
+	lastText = out
 	S.lastSync = time()
 	S.syncDirty = false
 	S.UIChanged()
@@ -426,7 +434,18 @@ local function Loop()
 	S.After(PUSH_EVERY, Loop)
 end
 
+-- Two clients running from the same game folder share the file, so a change
+-- made by one shows up in the other within a few seconds. Skipped in combat,
+-- and an unchanged file costs almost nothing (see lastText).
+local function Poll()
+	S.After(POLL_EVERY, Poll)
+	if not S.ready or not S.db or not S.db.sync then return end
+	if UnitAffectingCombat and UnitAffectingCombat("player") then return end
+	S.SyncPull()
+end
+
 S.On("PLAYER_LOGIN", function()
+	S.After(12, Poll)
 	-- after the first scan (3s), so our own character is already current
 	S.After(5, function()
 		S.Sync()

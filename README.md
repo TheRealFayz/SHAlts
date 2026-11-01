@@ -56,6 +56,8 @@ If you run more than one game window, only one of them shows the alert.
 
 The game keeps each account's data separate, so by itself an addon can only see the characters on the account you are logged into. With SuperWoW installed, SHAlts shares its data through a small text file in your game folder (`Imports\SHAltsSync.txt`). Every account that runs from the same game folder reads and writes the same file, so all of your alts show up everywhere.
 
+If you play two characters at the same time, each one picks up the other's changes within a few seconds, so the window stays current without a reload. A character that is offline catches up the next time you log in on it.
+
 Log in once on each account and the rest takes care of itself. Without SuperWoW the addon still works, it just shows the characters of the account you are on.
 
 The file is plain text and is never run as code. It stays on your computer. Nothing is sent anywhere.
@@ -95,3 +97,19 @@ A removed alt stays removed, even with the shared file, until you play that char
 
 1. Download the addon and put the `SHAlts` folder in `Interface\AddOns`. If you downloaded a zip from GitHub, the folder must be named exactly `SHAlts`, so remove any `-main` from the end of its name.
 2. Start the game and log in. The minimap button appears right away.
+
+## Enjoying it?
+
+If SHAlts saves you some time, please take a second to **star the project on GitHub**: https://github.com/TheRealFayz/SHalts
+
+Stars are how other players find it, and they tell me it is worth keeping up. Bug reports and ideas are welcome too. Open an issue on the same page and include what you were doing when it happened.
+
+## More addons by Fayz
+
+All free, all for OctoWoW and other 1.12 clients. A star on any of them is appreciated.
+
+- **[SHPlates](https://github.com/TheRealFayz/SHPlates)** is a highly customizable nameplate addon. Server threat, cast bars, debuff timers, combo points, raid marks and per-spec settings. Know who has aggro before the mob gets to your healer.
+- **[TotemNesia](https://github.com/TheRealFayz/TotemNesia)** is a totem management addon for Shaman.
+- **[Arcanum](https://github.com/TheRealFayz/Arcanum)** helps Mages manage their spells and items.
+- **[AutoSpam](https://github.com/TheRealFayz/AutoSpam)** posts your messages to chat channels at the interval you choose, from 1 to 10 minutes.
+- **[IRC](https://github.com/TheRealFayz/IRC)** is the original Instance Reset Counter that now lives inside SHAlts as the IRC tab.
