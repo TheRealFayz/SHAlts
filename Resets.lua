@@ -76,8 +76,8 @@ local function Prune()
 	return c.resets
 end
 
--- One reset action can reset several dungeons at once, and the game then sends
--- one message per dungeon. Messages that arrive within COALESCE seconds of the
+-- One reset action can reset several dungeons or raids at once, and the game then
+-- sends one message per instance. Messages that arrive within COALESCE seconds of the
 -- newest timer belong to that same action, so they start no new timer; the extra
 -- dungeon names are just added to its label.
 -- Returns: isNewTimer, isNewDungeon
@@ -162,34 +162,107 @@ end
 -------------------------------------------------------------------------------
 -- Game messages
 -------------------------------------------------------------------------------
--- "Blackrock Depths has been reset." (you reset it)
--- "Blackrock Depths has been reset by Fayz" (the group leader did)
+-- The game's own wording for "X has been reset." is used when this client has it,
+-- so a server that words it differently still matches. The plain text is the fallback.
+local function GlobalPattern(fmt)
+	if type(fmt) ~= "string" then return nil end
+	local p = string.gsub(fmt, "([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1")
+	p = string.gsub(p, "%%s", "(.+)")
+	return "^" .. p
+end
+local RESET_OK = GlobalPattern(INSTANCE_RESET_SUCCESS)
+
+-- When a reset is asked for (our button or the game's own menu), the next few
+-- seconds of game messages are watched. If the game confirms it in words we did
+-- not expect, it still counts. If nothing is recognised, chat shows what the
+-- game said, so the wording can be added.
+local WINDOW = 4
+local awaitUntil = 0
+local reqCounted, reqFailed = false, false
+local heard = {}
+
+if type(ResetInstances) == "function" then
+	local origReset = ResetInstances
+	ResetInstances = function()
+		awaitUntil = GetTime() + WINDOW
+		reqCounted, reqFailed = false, false
+		heard = {}
+		origReset()
+	end
+end
+
+local function HandleReset(name, by)
+	local isNew, nameAdded = AddReset(name)
+	-- only the player who did the reset tells the group about it
+	if nameAdded and not by then Announce(name) end
+	reqCounted = true
+	if isNew then
+		S.IRCPrint("|cff88ff88" .. (name or "Instance") .. " reset" .. (by and (" by " .. by) or "") ..
+			" (" .. table.getn(S.GetChar().resets) .. "/" .. MAX_RESETS .. ")|r")
+	elseif nameAdded then
+		S.IRCPrint("|cff88ff88" .. (name or "Instance") .. " reset too (same reset, no new timer)|r")
+	end
+end
+
+local function IsFailure(msg)
+	return string.find(msg, "still inside") or string.find(msg, "currently in that instance")
+		or string.find(msg, "Cannot reset") or string.find(msg, "cannot be reset")
+end
+
+-- "Blackrock Depths has been reset." (you reset it, dungeon or raid)
+-- "Blackrock Depths has been reset by Fayz" (some clients show it this way)
 -- Either way the instance reset counts against you, so both start a timer.
 local function OnResetMessage(msg)
 	if not msg or not S.db or not S.ready then return end
-	if string.find(msg, "has been reset") then
-		local _, _, name = string.find(msg, "^(.-) has been reset")
+	local waiting = GetTime() < awaitUntil
+	local name
+	if RESET_OK then
+		local _, _, n1 = string.find(msg, RESET_OK)
+		name = n1
+	end
+	local matched = name ~= nil
+	if not matched and string.find(msg, "has been reset") then
+		matched = true
+		local _, _, n2 = string.find(msg, "^(.-) has been reset")
+		name = n2
+	end
+	if matched then
 		if name == "" then name = nil end
 		local _, _, by = string.find(msg, "has been reset by ([^%s%.,!]+)")
-		local isNew, nameAdded = AddReset(name)
-		-- only the player who did the reset tells the group about it
-		local mine = (not by) or by == UnitName("player")
-		if nameAdded and mine then Announce(name) end
-		if isNew then
-			S.IRCPrint("|cff88ff88" .. (name or "Instance") .. " reset" .. (by and (" by " .. by) or "") ..
-				" (" .. table.getn(S.GetChar().resets) .. "/" .. MAX_RESETS .. ")|r")
-		elseif nameAdded then
-			S.IRCPrint("|cff88ff88" .. (name or "Instance") .. " reset too (same reset, no new timer)|r")
+		if by == UnitName("player") then by = nil end
+		HandleReset(name, by)
+	elseif IsFailure(msg) then
+		reqFailed = true
+		S.IRCPrint("|cffff5555Reset failed:|r " .. msg)
+	elseif waiting then
+		local low = string.lower(msg)
+		if string.find(low, "reset") then
+			-- confirmed in words we did not expect, right after a reset was asked for
+			table.insert(heard, msg)
+			HandleReset(nil, nil)
+		elseif string.find(low, "instance") then
+			table.insert(heard, msg)
 		end
-	elseif string.find(msg, "still inside") then
-		S.IRCPrint("|cffff5555Reset failed:|r players still inside.")
-	elseif string.find(msg, "currently in that instance") then
-		S.IRCPrint("|cffff5555Reset failed:|r someone is in there.")
 	end
 end
 
 S.On("CHAT_MSG_SYSTEM", OnResetMessage)
 S.On("UI_INFO_MESSAGE", OnResetMessage)   -- in case this client sends it that way
+S.On("UI_ERROR_MESSAGE", OnResetMessage)  -- some failures come this way
+
+-- called once a second: if a reset was asked for and nothing was counted, say what the game said
+local function CheckRequest()
+	if awaitUntil > 0 and GetTime() >= awaitUntil then
+		awaitUntil = 0
+		if not reqCounted and not reqFailed then
+			if table.getn(heard) > 0 then
+				S.IRCPrint("|cffcccc88Reset sent, nothing counted. The game said:|r " .. table.concat(heard, " | "))
+			else
+				S.IRCPrint("|cffcccc88Reset sent, but the game did not say an instance was reset, so no timer was started.|r")
+			end
+		end
+	end
+end
 
 -- Diagnostic for finding out how a message reaches the client: /shalts resetdebug
 -- echoes every game message that mentions a reset, with the event it came from.
@@ -205,8 +278,9 @@ function S.ToggleResetDebug()
 			pcall(function() dbgFrame:RegisterEvent(e) end)
 		end
 		dbgFrame:SetScript("OnEvent", function()
-			if dbgFrame.on and arg1 and string.find(string.lower(arg1), "reset") then
+			if dbgFrame.on and arg1 and (string.find(string.lower(arg1), "reset") or string.find(string.lower(arg1), "instance")) then
 				S.Print("|cffff9900reset message|r [" .. tostring(event) .. "] " .. arg1)
+				if S.db then S.db.lastResetDebug = tostring(event) .. " | " .. arg1 end
 			end
 		end)
 	end
@@ -273,6 +347,14 @@ local function RequestLocks()
 	if RequestRaidInfo then pcall(RequestRaidInfo) end
 end
 
+-- a raid save appears when you are saved to it, and changes when you zone out
+S.On("PLAYER_ENTERING_WORLD", function() S.After(6, RequestLocks) end)
+S.On("CHAT_MSG_SYSTEM", function(msg)
+	if msg and (string.find(msg, "saved to this instance") or (INSTANCE_SAVED and msg == INSTANCE_SAVED)) then
+		S.After(2, RequestLocks)
+	end
+end)
+
 S.On("PLAYER_LOGIN", function()
 	S.After(10, RequestLocks)
 	local function Again()
@@ -285,10 +367,12 @@ end)
 -------------------------------------------------------------------------------
 -- Once a second: expire timers, fire alerts, keep open displays live
 -------------------------------------------------------------------------------
+local tickCount = 0
 local function Tick()
 	S.After(1, Tick)
 	if not S.db or not S.ready then return end
 
+	CheckRequest()
 	local active = table.getn(Prune())
 	if lastActive ~= nil then
 		if active < lastActive then
@@ -301,6 +385,13 @@ local function Tick()
 
 	-- timers tick on screen while the IRC tab or the minimap tooltip is showing
 	if S.tab == "irc" and SHAltsFrame and SHAltsFrame:IsShown() then S.UIChanged() end
+	-- the raids and cooldowns lists change slowly, so every few seconds is plenty
+	tickCount = tickCount + 1
+	if tickCount >= 5 then
+		tickCount = 0
+		if S.PruneTimers then S.PruneTimers() end
+		if (S.tab == "raids" or S.tab == "cd" or S.tab == "track") and SHAltsFrame and SHAltsFrame:IsShown() then S.UIChanged() end
+	end
 	if S.minimapHover and S.ShowMinimapTip then S.ShowMinimapTip() end
 end
 

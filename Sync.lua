@@ -168,6 +168,13 @@ function S.SyncSerialize()
 	end
 	if S.db.starAsked then table.insert(out, "A|1") end
 
+	-- which cooldowns are switched off; the newest choice wins on every account
+	if S.db.cdOffT then
+		local names = {}
+		for name in pairs(S.db.cdOff or {}) do table.insert(names, Esc(name)) end
+		table.insert(out, "Q|" .. Num(S.db.cdOffT) .. "|" .. table.concat(names, ","))
+	end
+
 	-- cooldowns already announced, so other accounts don't announce them again
 	local cutoff = time() - KEEP_ALERTED
 	for id, t in pairs(S.db.alerted or {}) do
@@ -308,6 +315,12 @@ function S.SyncParse(text)
 			tombs[Unesc(f[2])] = tonumber(f[3])
 		elseif tag == "A" and f[2] == "1" then
 			flags.starAsked = true
+		elseif tag == "Q" and tonumber(f[2]) then
+			local set = {}
+			for _, nm in ipairs(Split(f[3] or "", ",")) do
+				if nm ~= "" then set[Unesc(nm)] = true end
+			end
+			flags.cdOff, flags.cdOffT = set, tonumber(f[2])
 		elseif tag == "Y" and f[2] and f[2] ~= "" and tonumber(f[3]) then
 			flags.alerted[Unesc(f[2])] = tonumber(f[3])
 		end
@@ -321,6 +334,9 @@ end
 function S.SyncMerge(chars, items, tombs, flags)
 	local db = S.db
 	if flags and flags.starAsked then db.starAsked = true end
+	if flags and flags.cdOffT and flags.cdOffT > (db.cdOffT or 0) then
+		db.cdOff, db.cdOffT = flags.cdOff or {}, flags.cdOffT
+	end
 	if flags and flags.alerted then
 		local cutoff = time() - KEEP_ALERTED
 		for id, t in pairs(flags.alerted) do

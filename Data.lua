@@ -289,8 +289,8 @@ local function IRCLines(c, key)
 	-- the game only lets you reset instances for the character you are playing
 	if key == S.CharKey() then
 		table.insert(lines, {
-			text = "|cffffd100Reset dungeon|r", right = "|cff888888click|r", action = function() S.DoDungeonReset() end,
-			tip = { "Reset dungeon", "Asks the game to reset your instances.", "A timer starts only if the game confirms it." },
+			text = "|cffffd100Reset instances|r", right = "|cff888888click|r", action = function() S.DoDungeonReset() end,
+			tip = { "Reset instances", "Asks the game to reset your dungeons and raids.", "A timer starts only if the game confirms it." },
 		})
 		table.insert(lines, {
 			text = "|cffffd100Reset all timers|r", right = "|cff888888click|r", action = function() S.ResetAllTimers() end,
@@ -340,6 +340,108 @@ end
 -------------------------------------------------------------------------------
 -- Cooldowns (all characters)
 -------------------------------------------------------------------------------
+local TIMER_PREFIX = "Timer: "
+
+-- the cooldowns this addon knows about, so they can be switched off before they ever show up
+local KNOWN_CDS = {
+	"Salt Shaker", "Mooncloth", "Shadowcloth", "Spellcloth",
+	"Transmute: Arcanite", "Transmute: Iron to Gold", "Transmute: Mithril to Truesilver",
+	"Transmute: Air to Fire", "Transmute: Earth to Water", "Transmute: Fire to Earth", "Transmute: Water to Air",
+	"Transmute: Life to Earth", "Transmute: Earth to Life", "Transmute: Undeath to Water", "Transmute: Water to Undeath",
+	"Transmute: Elemental Fire",
+}
+
+function S.IsCustomTimer(name)
+	return name ~= nil and string.sub(name, 1, string.len(TIMER_PREFIX)) == TIMER_PREFIX
+end
+
+-- custom timers are always shown; everything else can be switched off
+function S.CdTracked(name)
+	if S.IsCustomTimer(name) then return true end
+	return not (S.db.cdOff and S.db.cdOff[name])
+end
+
+function S.SetCdTracked(name, on)
+	if not S.db.cdOff then S.db.cdOff = {} end
+	if on then S.db.cdOff[name] = nil else S.db.cdOff[name] = true end
+	S.db.cdOffT = math.floor(time())
+	S.DataChanged()
+end
+
+-- every cooldown name that can be switched on or off: the known ones plus anything seen on any alt
+function S.CooldownNames()
+	local set = {}
+	for i = 1, table.getn(KNOWN_CDS) do set[KNOWN_CDS[i]] = true end
+	for _, c in pairs(S.db.chars) do
+		for name in pairs(c.cd or {}) do
+			if not S.IsCustomTimer(name) then set[name] = true end
+		end
+	end
+	for name in pairs(S.db.cdOff or {}) do set[name] = true end
+	local out = {}
+	for name in pairs(set) do table.insert(out, name) end
+	table.sort(out, function(a, b) return string.lower(a) < string.lower(b) end)
+	return out
+end
+
+-- "1d 12h", "90m", "2h30m" -> seconds, or nil and a reason
+function S.ParseDuration(text)
+	text = string.lower(text or "")
+	local total, used = 0, 0
+	for n, unit in string.gfind(text, "(%d+)%s*([dhms])") do
+		local v = tonumber(n)
+		if unit == "d" then total = total + v * 86400
+		elseif unit == "h" then total = total + v * 3600
+		elseif unit == "m" then total = total + v * 60
+		else total = total + v end
+		used = used + 1
+	end
+	local rest = string.gsub(text, "%d+%s*[dhms]", "")
+	rest = string.gsub(rest, "[%s,]", "")
+	if used == 0 or rest ~= "" then return nil, "Type a time like 24h, 2d, 90m or 1d12h." end
+	if total < 1 then return nil, "That time is too short." end
+	if total > 365 * 86400 then return nil, "That is more than a year." end
+	return total
+end
+
+-- start a custom timer on the character being played
+function S.AddTimer(name, timeText)
+	name = string.gsub(name or "", "[|%c]", "")
+	name = string.gsub(name, "^%s+", "")
+	name = string.gsub(name, "%s+$", "")
+	if name == "" then return nil, "Type a name for the timer." end
+	if string.len(name) > 30 then name = string.sub(name, 1, 30) end
+	local secs, why = S.ParseDuration(timeText)
+	if not secs then return nil, why end
+	local c = S.GetChar()
+	c.cd[TIMER_PREFIX .. name] = math.floor(time()) + secs
+	S.DataChanged()
+	return true, name, secs
+end
+
+function S.RemoveTimer(key)
+	local c = S.GetChar()
+	if c.cd[key] then
+		c.cd[key] = nil
+		S.DataChanged()
+	end
+end
+
+-- finished custom timers are tidied away a day after they ran out
+function S.PruneTimers()
+	local c = S.db and S.db.chars[S.CharKey()]
+	if not c or not c.cd then return end
+	local cutoff = time() - 86400
+	local changed = false
+	for name, endsAt in pairs(c.cd) do
+		if S.IsCustomTimer(name) and endsAt < cutoff then
+			c.cd[name] = nil
+			changed = true
+		end
+	end
+	if changed then S.DataChanged() end
+end
+
 local function CooldownRows()
 	local rows = {}
 	local now = time()
@@ -347,7 +449,9 @@ local function CooldownRows()
 	for i = 1, table.getn(chars) do
 		local e = chars[i]
 		for name, endsAt in pairs(e.c.cd or {}) do
-			table.insert(rows, { c = e.c, name = name, left = endsAt - now })
+			if S.CdTracked(name) then
+				table.insert(rows, { c = e.c, name = name, left = endsAt - now })
+			end
 		end
 	end
 	table.sort(rows, function(a, b)
@@ -358,8 +462,17 @@ local function CooldownRows()
 	return rows
 end
 
+local function GoTab(tab)
+	if S.UI and S.UI.ShowTab then S.UI.ShowTab(tab) end
+end
+
 local function CooldownLines()
 	local lines = {}
+	table.insert(lines, {
+		text = "|cffffd100Choose cooldowns and timers...|r", right = "|cff888888click|r",
+		action = function() GoTab("track") end,
+		tip = { "Choose cooldowns and timers", "Pick which profession cooldowns are shown,", "and see or remove your custom timers." },
+	})
 	local rows = CooldownRows()
 	for i = 1, table.getn(rows) do
 		local r = rows[i]
@@ -377,6 +490,61 @@ local function CooldownLines()
 		table.insert(lines, Note("No cooldowns recorded yet."))
 	end
 	table.insert(lines, Note("Salt Shaker is tracked while it is in your bags."))
+	return lines
+end
+
+-- the "choose cooldowns and timers" view
+local function TrackLines()
+	local lines = {}
+	table.insert(lines, {
+		text = "|cffffd100< Back to settings|r", right = "",
+		action = function() GoTab("settings") end,
+	})
+
+	table.insert(lines, Header("Custom timers"))
+	local mine = S.db.chars[S.CharKey()]
+	local keys = {}
+	for name in pairs((mine and mine.cd) or {}) do
+		if S.IsCustomTimer(name) then table.insert(keys, name) end
+	end
+	table.sort(keys, function(a, b) return mine.cd[a] < mine.cd[b] end)
+	local now = time()
+	for i = 1, table.getn(keys) do
+		local key = keys[i]
+		local left = mine.cd[key] - now
+		local right
+		if left <= 0 then right = "|cff40ff40Ready|r" else right = S.FormatDuration(left) end
+		table.insert(lines, {
+			text = string.sub(key, string.len(TIMER_PREFIX) + 1), right = right,
+			action = function() S.RemoveTimer(key) end,
+			tip = { key, "Click to remove this timer.", "|cffaaaaaaOther characters see it too.|r" },
+		})
+	end
+	if table.getn(keys) == 0 then
+		table.insert(lines, Note("None yet. Add one in Settings, under Custom timer."))
+	end
+
+	table.insert(lines, Header("Cooldowns to track", "click to switch"))
+	table.insert(lines, {
+		text = "|cffaaaaaaTrack all|r", right = "",
+		action = function()
+			S.db.cdOff = {}
+			S.db.cdOffT = math.floor(time())
+			S.DataChanged()
+		end,
+	})
+	local names = S.CooldownNames()
+	for i = 1, table.getn(names) do
+		local name = names[i]
+		local on = S.CdTracked(name)
+		table.insert(lines, {
+			text = name,
+			right = on and "|cff40ff40tracked|r" or "|cff888888hidden|r",
+			action = function() S.SetCdTracked(name, not S.CdTracked(name)) end,
+			tip = { name, on and "Shown on the Cooldowns tab, in alerts and on the minimap." or "Hidden everywhere.", "Click to switch." },
+		})
+	end
+	table.insert(lines, Note("Hiding a cooldown only changes what you see. Nothing is lost."))
 	return lines
 end
 
@@ -400,6 +568,63 @@ function S.ReadyList()
 		if r.left <= 0 then table.insert(out, S.ColoredName(r.c) .. " (" .. r.name .. ")") end
 	end
 	return out
+end
+
+-------------------------------------------------------------------------------
+-- Raids tab: when the server resets each raid, and who is saved to what
+-------------------------------------------------------------------------------
+local function StampText(t)
+	return date("%a %b %d, %I:%M %p", t)
+end
+
+local function RaidsLines(key)
+	local lines = {}
+	local now = time()
+
+	local sched, assumed = S.RaidSchedule(now)
+	table.insert(lines, Header("Server raid resets", "resets in"))
+	for i = 1, table.getn(sched) do
+		local r = sched[i]
+		local left = r.nextAt - now
+		local label = r.name
+		local tip = { r.name }
+		if r.size then
+			label = label .. "  |cff888888(" .. r.size .. ")|r"
+			table.insert(tip, "Raid size " .. r.size .. " players")
+		end
+		table.insert(tip, "Resets every " .. r.days .. " days")
+		table.insert(tip, "Next: " .. StampText(r.nextAt))
+		table.insert(tip, "|cffaaaaaaLast: " .. StampText(r.prevAt) .. "|r")
+		table.insert(lines, { text = label, right = S.FormatDuration(left), tip = tip })
+	end
+	if assumed then
+		table.insert(lines, Note("This realm's schedule is a guess based on N'Zoth."))
+	end
+
+	-- the raids the character picked in the dropdown is saved to
+	local c = key and S.db.chars[key]
+	if not c then
+		table.insert(lines, Header("Saved to raids", ""))
+		table.insert(lines, Note("No character selected."))
+		return lines
+	end
+	local locks = {}
+	if c.locksSeen then locks = S.LockView(c) end
+	table.sort(locks, function(a, b) return a.e < b.e end)
+
+	table.insert(lines, Header("Saved to raids", S.ColoredName(c)))
+	for j = 1, table.getn(locks) do
+		local l = locks[j]
+		local tip = { S.ColoredName(c) .. ": " .. l.n, "Resets in " .. S.FormatDuration(l.e - now), "|cffaaaaaa" .. StampText(l.e) .. "|r" }
+		if l.id and l.id > 0 then table.insert(tip, "|cffaaaaaaInstance ID " .. l.id .. "|r") end
+		table.insert(lines, { text = "|cffffd100" .. l.n .. "|r", right = S.FormatDuration(l.e - now), tip = tip })
+	end
+	if not c.locksSeen then
+		table.insert(lines, Note("Not recorded yet. Log in on this character once."))
+	elseif table.getn(locks) == 0 then
+		table.insert(lines, Note("Not saved to any raid."))
+	end
+	return lines
 end
 
 -------------------------------------------------------------------------------
@@ -514,10 +739,12 @@ end
 -------------------------------------------------------------------------------
 -- Entry point for the window
 -------------------------------------------------------------------------------
--- tab: "bags" | "bank" | "mail" | "profs" | "gear" | "cd" | "irc" | "info" | "settings"
+-- tab: "bags" | "bank" | "mail" | "profs" | "gear" | "cd" | "raids" | "irc" | "info" | "settings" | "track"
 function S.BuildLines(tab, key, searchText)
 	if searchText and searchText ~= "" then return S.SearchLines(searchText) end
 	if tab == "cd" then return CooldownLines() end
+	if tab == "raids" then return RaidsLines(key) end
+	if tab == "track" then return TrackLines() end
 	if tab == "settings" then return {} end
 
 	local c = key and S.db.chars[key]

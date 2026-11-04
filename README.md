@@ -11,10 +11,12 @@ You can also download IRC from OctoWoW's [Gitea](https://octowow.st/git/Fayz/SHa
 - **Mailbox**, recorded each time you open a mailbox (items and money waiting)
 - **Professions**, skill levels and every recipe you know
 - **Gear**, what each character has equipped
-- **Cooldowns**, for every alt at once: Salt Shaker, transmutes, Mooncloth, Shadowcloth and Spellcloth
+- **Cooldowns**, for every alt at once: Salt Shaker, transmutes, Mooncloth, Shadowcloth and Spellcloth. You pick which ones you care about
+- **Custom timers**, for anything else you want to count down, like an auction or a delivery
 - **Reputation, PvP rank, honor and time played**
 - **Instance resets**, the 5 per hour limit, for each character
-- **Raid lockouts**, so you can see at a glance which characters are locked
+- **Raid lockouts**, so you can see at a glance which characters are locked, and to which raid
+- **Server raid resets**, when each raid resets for everyone so you know when you can run it again
 
 Everything is recorded automatically while you play. There is nothing to save and no command to run.
 
@@ -35,10 +37,10 @@ The IRC tab is the Instance Reset Counter built into SHAlts. The server allows 5
 - Each timer counts down from 60:00. Reset 1 is always the oldest. When it runs out it clears and the rest move up.
 - A timer starts only when the game confirms the reset, so a reset that fails because someone is still inside starts nothing.
 - It also counts resets done by your group leader ("Blackrock Depths has been reset by Name"), so members get a timer too.
-- One reset action is one timer, even if it resets several dungeons at once. All the dungeon names are shown on that one timer.
+- Raids count the same as dungeons. If you farm Molten Core or another raid and reset it to run it again, each reset uses one of the five. One reset action is one timer, even if it resets several dungeons or raids at once. All their names are shown on that one timer.
 - Coin you loot inside the instance is added to the newest timer, and the Lockout total adds up all five.
 - Timers keep counting while you are logged out.
-- Pick any character from the dropdown to see its timers. The Reset dungeon and Reset all timers rows work for the character you are playing.
+- Pick any character from the dropdown to see its timers. The Reset instances and Reset all timers rows work for the character you are playing.
 - The same list of timers shows when you hover the minimap button, counting down live.
 - When a slot frees up or you hit the cap, you get a sound and the minimap button flashes. If you lead the group, the reset is announced in party or raid chat. Both can be turned off in Settings.
 
@@ -51,6 +53,19 @@ If you also have the separate IRC addon installed, turn one of them off. They wo
 When a cooldown finishes on any of your characters, a small window tells you. If several are ready, they are all listed together. Each one is announced once. The alert waits while you are in combat or dead and never steals your keyboard focus.
 
 If you run more than one game window, only one of them shows the alert.
+
+## Choosing cooldowns and custom timers
+
+Not every cooldown matters to every player. Open the Cooldowns tab and click **Choose cooldowns and timers** (or use the button in Settings) to switch any cooldown on or off. A cooldown you switch off is hidden on the Cooldowns tab, in alerts and on the minimap, and your choice is shared between your accounts. Nothing is lost, switch it back on any time.
+
+You can also start a timer of your own for anything you want to keep an eye on, like how long an auction has been posted. In Settings, under **Custom timer**, type a name and a time such as `24h`, `2d`, `90m` or `1d12h`, and press Start. It belongs to the character you are playing, counts down on the Cooldowns tab for every one of your alts, and alerts you when it runs out. Click a timer in the choose list to remove it. Finished timers tidy themselves away after a day.
+
+## Raids tab
+
+The Raids tab has two parts, both separate from your own reset timers.
+
+- **Server raid resets** lists every raid on its own line with its size range and when it resets for everyone, so you know when you can run it again. Raids that share a reset timer, like Molten Core and Naxxramas, show the same time.
+- **Saved to raids** lists the raids the character picked in the dropdown is saved to, and how long until each save runs out. Pick your Mage from the dropdown while playing your Paladin to check its Zul'Gurub save without logging over. A character's saves are recorded when you play it, so log in on each character once.
 
 ## Using more than one account
 
@@ -70,6 +85,7 @@ Open the Settings tab (the gear) to:
 - sort alts by name or level
 - show or hide the minimap button
 - turn cooldown alerts on or off, or test one
+- choose which cooldowns to track, and start custom timers
 - turn the reset sound alerts and the reset announcements on or off
 - turn sharing between accounts on or off
 - rescan the current character

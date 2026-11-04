@@ -13,3 +13,4 @@ Minimap.lua
 Star.lua
 Alert.lua
 Resets.lua
+Raids.lua

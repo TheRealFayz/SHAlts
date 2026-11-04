@@ -46,6 +46,7 @@ end
 function S.QueueAlert(key, name, endsAt)
 	local db = S.db
 	if not db or not db.alert then return end
+	if S.CdTracked and not S.CdTracked(name) then return end   -- switched off in the cooldown list
 	local id = key .. "|" .. name
 	if SameCooldown(db.alerted[id], endsAt) or pending[id] or shown[id] then return end
 	-- A random delay of up to 3 seconds keeps two game windows from picking the

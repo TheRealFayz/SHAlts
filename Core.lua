@@ -99,6 +99,7 @@ S.On("ADDON_LOADED", function(name)
 	if type(db.items) ~= "table" then db.items = {} end
 	if type(db.deleted) ~= "table" then db.deleted = {} end   -- key -> time it was removed
 	if type(db.alerted) ~= "table" then db.alerted = {} end   -- "key|cooldown" -> end time already announced
+	if type(db.cdOff) ~= "table" then db.cdOff = {} end       -- cooldown name -> true when switched off
 	S.db = db
 end)
 

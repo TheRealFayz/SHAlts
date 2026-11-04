@@ -24,7 +24,8 @@ local TABS = {
 	{ key = "mail",     tip = "Mailbox",     icon = "Interface\\Icons\\INV_Letter_15" },
 	{ key = "profs",    tip = "Professions", icon = "Interface\\Icons\\Trade_Alchemy" },
 	{ key = "gear",     tip = "Gear",        icon = "Interface\\Icons\\INV_Chest_Plate07" },
-	{ key = "cd",       tip = "Cooldowns",   icon = "Interface\\Icons\\INV_Misc_PocketWatch_01" },
+	{ key = "cd",       tip = "Cooldowns and timers", icon = "Interface\\Icons\\INV_Misc_PocketWatch_01" },
+	{ key = "raids",    tip = "Raids: server resets and who is saved", icon = "Interface\\Icons\\INV_Misc_Map_01" },
 	{ key = "irc",      tip = "IRC: instance resets and raid lockouts", icon = "Interface\\Icons\\Spell_Nature_NatureTouchGrow" },
 	{ key = "info",     tip = "Reputation, PvP and time played", icon = "Interface\\Icons\\INV_Misc_Note_01" },
 	{ key = "settings", tip = "Settings",    icon = "Interface\\Icons\\INV_Misc_Gear_01" },
@@ -495,12 +496,13 @@ local function ShowTab(key)
 	ResetScroll(list)
 	UI.Refresh()
 end
+UI.ShowTab = ShowTab
 
 for i = 1, table.getn(TABS) do
 	local info = TABS[i]
 	local t = CreateFrame("CheckButton", "SHAltsTab" .. i, Config)
 	t:SetWidth(32); t:SetHeight(32)
-	t:SetPoint("TOPLEFT", Config, "TOPLEFT", W - 4, -48 - (i - 1) * 48)
+	t:SetPoint("TOPLEFT", Config, "TOPLEFT", W - 4, -48 - (i - 1) * 44)
 	local bg = t:CreateTexture(nil, "BACKGROUND")
 	bg:SetTexture("Interface\\SpellBook\\SpellBook-SkillLineTab")
 	bg:SetWidth(64); bg:SetHeight(64)
@@ -593,35 +595,35 @@ end)
 local sortLabel = Note("Sort alts by", 24, -70, 80)
 local sortName = Check("SHAltsSortName", "Name", 100, -64, function() S.db.sort = "name"; S.UIChanged() end)
 local sortLevel = Check("SHAltsSortLevel", "Level", 170, -64, function() S.db.sort = "level"; S.UIChanged() end)
-Button("SHAltsResetSize", "Reset window size", 20, -92, 140, function() UI.SetScale(1) end)
-Note("You can also drag the window's corner.", 168, -97, 190)
+Button("SHAltsResetSize", "Reset size", 250, -66, 110, function() UI.SetScale(1) end)
 
-SectionLabel("Features", -126)
-local minimapCheck = Check("SHAltsMinimapCheck", "Show the minimap button", 20, -148, function(on)
+SectionLabel("Features", -98)
+local minimapCheck = Check("SHAltsMinimapCheck", "Minimap button", 20, -120, function(on)
 	S.db.minimapHidden = not on
 	if S.UpdateMinimapButton then S.UpdateMinimapButton() end
 end)
-local alertCheck = Check("SHAltsAlertCheck", "Cooldown ready alerts", 20, -172, function(on) S.db.alert = on end)
-local resetAlertCheck = Check("SHAltsResetAlertCheck", "Reset slot sound alerts", 20, -196, function(on) S.db.resetAlerts = on end)
-local announceCheck = Check("SHAltsAnnounceCheck", "Announce resets to party or raid", 20, -220, function(on) S.db.resetAnnounce = on end)
-local syncCheck = Check("SHAltsSyncCheck", "Share alts between accounts", 20, -244, function(on)
+local alertCheck = Check("SHAltsAlertCheck", "Cooldown alerts", 20, -144, function(on) S.db.alert = on end)
+local resetAlertCheck = Check("SHAltsResetAlertCheck", "Reset sound alerts", 20, -168, function(on) S.db.resetAlerts = on end)
+local announceCheck = Check("SHAltsAnnounceCheck", "Announce resets", 190, -120, function(on) S.db.resetAnnounce = on end)
+local syncCheck = Check("SHAltsSyncCheck", "Share between accounts", 190, -144, function(on)
 	S.db.sync = on
 	if on and S.Sync then S.Sync() end
 end)
-local syncNote = Note("", 44, -268, 316)
-Button("SHAltsTestAlert", "Test alert", 20, -288, 110, function() S.ShowAlertPreview() end)
-Button("SHAltsRescan", "Rescan this character", 140, -288, 160, function()
+local syncNote = Note("", 214, -170, 150)
+Button("SHAltsTestAlert", "Test alert", 20, -198, 100, function() S.ShowAlertPreview() end)
+Button("SHAltsRescan", "Rescan", 126, -198, 100, function()
 	S.ScanAll()
 	S.Print("scanned " .. UnitName("player"))
 end)
+Button("SHAltsChooseCds", "Choose cooldowns", 232, -198, 128, function() ShowTab("track") end)
 
-SectionLabel("Remove an alt", -322)
+SectionLabel("Remove an alt", -230)
 local delBox = CreateFrame("EditBox", "SHAltsDeleteBox", settings, "InputBoxTemplate")
 delBox:SetWidth(180); delBox:SetHeight(20)
-delBox:SetPoint("TOPLEFT", settings, "TOPLEFT", 26, -344)
+delBox:SetPoint("TOPLEFT", settings, "TOPLEFT", 26, -252)
 delBox:SetAutoFocus(false)
 delBox:SetMaxLetters(24)
-local delMsg = Note("", 24, -368, 330)
+local delMsg = Note("", 24, -276, 330)
 
 local function DoDelete()
 	local typed = delBox:GetText()
@@ -634,10 +636,52 @@ local function DoDelete()
 	end
 	delBox:ClearFocus()
 end
-Button("SHAltsDeleteButton", "Delete", 214, -342, 80, DoDelete)
+Button("SHAltsDeleteButton", "Delete", 214, -250, 80, DoDelete)
 delBox:SetScript("OnEnterPressed", DoDelete)
 delBox:SetScript("OnEscapePressed", function() this:ClearFocus() end)
 delBox:SetScript("OnTextChanged", function() if this:GetText() ~= "" then delMsg:SetText("") end end)
+
+-- a timer of your own (an auction, a delivery, anything), shown for this character on all your alts
+SectionLabel("Custom timer", -300)
+local timerName = CreateFrame("EditBox", "SHAltsTimerName", settings, "InputBoxTemplate")
+timerName:SetWidth(160); timerName:SetHeight(20)
+timerName:SetPoint("TOPLEFT", settings, "TOPLEFT", 26, -336)
+timerName:SetAutoFocus(false)
+timerName:SetMaxLetters(30)
+local timerTime = CreateFrame("EditBox", "SHAltsTimerTime", settings, "InputBoxTemplate")
+timerTime:SetWidth(70); timerTime:SetHeight(20)
+timerTime:SetPoint("TOPLEFT", settings, "TOPLEFT", 196, -336)
+timerTime:SetAutoFocus(false)
+timerTime:SetMaxLetters(14)
+local timerMsg = Note("", 24, -360, 336)
+
+local function DoAddTimer()
+	local ok, a = S.AddTimer(timerName:GetText(), timerTime:GetText())
+	if ok then
+		timerMsg:SetText("|cff40ff40Started " .. a .. ".|r |cff888888See it on the Cooldowns tab.|r")
+		timerName:SetText("")
+		timerTime:SetText("")
+	else
+		timerMsg:SetText("|cffff6060" .. a .. "|r")
+	end
+	timerName:ClearFocus()
+	timerTime:ClearFocus()
+end
+Button("SHAltsTimerAdd", "Start", 276, -334, 80, DoAddTimer)
+timerName:SetScript("OnEnterPressed", function() timerTime:SetFocus() end)
+timerName:SetScript("OnTabPressed", function() timerTime:SetFocus() end)
+timerTime:SetScript("OnEnterPressed", DoAddTimer)
+timerName:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+timerTime:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+timerName:SetScript("OnTextChanged", function() if this:GetText() ~= "" then timerMsg:SetText("") end end)
+do
+	local hint = settings:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint:SetPoint("BOTTOMLEFT", timerName, "TOPLEFT", 2, 1)
+	hint:SetText("Name")
+	local hint2 = settings:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	hint2:SetPoint("BOTTOMLEFT", timerTime, "TOPLEFT", 2, 1)
+	hint2:SetText("Time, like 24h or 2d")
+end
 
 local function RefreshSettings()
 	settings.loading = true
