@@ -64,7 +64,7 @@ You can also start a timer of your own for anything you want to keep an eye on, 
 
 The Raids tab has two parts, both separate from your own reset timers.
 
-- **Server raid resets** lists every raid on its own line with its size range and when it resets for everyone, so you know when you can run it again. Raids that share a reset timer, like Molten Core and Naxxramas, show the same time.
+- **Server raid resets** lists every raid on its own line with its size range and when it resets for everyone, so you know when you can run it again. Raids that share a reset timer, like Molten Core and Naxxramas, show the same time. Edge of Madness also shows which boss is up right now, like Edge of Madness (Wushoolay).
 - **Saved to raids** lists the raids the character picked in the dropdown is saved to, and how long until each save runs out. Pick your Mage from the dropdown while playing your Paladin to check its Zul'Gurub save without logging over. A character's saves are recorded when you play it, so log in on each character once.
 
 ## Using more than one account

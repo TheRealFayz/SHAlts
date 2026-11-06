@@ -262,6 +262,19 @@ list.fill = function(row, d)
 		row.icon:Hide()
 	end
 	Layout(row, list, d.icon ~= nil)
+	if S.tab == "raids" then
+		-- the Raids tab has few lines, so give it bigger, easier to read text
+		row.text:SetFont("Fonts\\FRIZQT__.TTF", 13)
+		row.right:SetFont("Fonts\\FRIZQT__.TTF", 13)
+		row.text:SetHeight(16); row.right:SetHeight(16)
+		if (d.right or "") == "" then
+			row.text:SetWidth(list.rowW - (d.icon and 24 or 6) - 8)
+		end
+	else
+		row.text:SetFontObject(GameFontHighlightSmall)
+		row.right:SetFontObject(GameFontHighlightSmall)
+		row.text:SetHeight(12); row.right:SetHeight(12)
+	end
 	if d.header then
 		row.text:SetTextColor(1, .82, 0)
 		row.bg:SetVertexColor(1, .82, 0, .12)

@@ -592,6 +592,10 @@ local function RaidsLines(key)
 			label = label .. "  |cff888888(" .. r.size .. ")|r"
 			table.insert(tip, "Raid size " .. r.size .. " players")
 		end
+		if r.boss then
+			label = label .. "  |cff888888(" .. r.boss .. ")|r"
+			table.insert(tip, "Boss this cycle: " .. r.boss)
+		end
 		table.insert(tip, "Resets every " .. r.days .. " days")
 		table.insert(tip, "Next: " .. StampText(r.nextAt))
 		table.insert(tip, "|cffaaaaaaLast: " .. StampText(r.prevAt) .. "|r")

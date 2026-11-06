@@ -42,6 +42,9 @@ local RAIDS = {
 	{ name = "Edge of Madness",      group = "eom" },
 }
 
+-- the Edge of Madness bosses, in the order they take turns
+local EOM_BOSSES = { "Gri'lek", "Hazza'rah", "Renataki", "Wushoolay" }
+
 -- the first reset of each cycle, per realm group
 local SET_A = {
 	raid40 = UTC(2026, 6, 17, 1),
@@ -88,6 +91,10 @@ function S.RaidSchedule(now)
 		times[group] = { days = days, nextAt = prev + interval + shift, prevAt = prev + shift }
 	end
 
+	-- Edge of Madness: the boss in play changes every 14 days, cycling through four
+	local sday = math.floor(serverNow / DAY)
+	local boss = EOM_BOSSES[math.mod(math.floor((sday + 2) / 14), 4) + 1]
+
 	local out = {}
 	for i = 1, table.getn(RAIDS) do
 		local r = RAIDS[i]
@@ -95,6 +102,7 @@ function S.RaidSchedule(now)
 		table.insert(out, {
 			name = r.name, size = r.size, group = r.group, days = t.days,
 			nextAt = t.nextAt, prevAt = t.prevAt,
+			boss = (r.group == "eom") and boss or nil,
 		})
 	end
 	return out, assumed
