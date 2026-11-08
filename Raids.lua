@@ -108,4 +108,35 @@ function S.RaidSchedule(now)
 	return out, assumed
 end
 
+-- Battleground of the day and the Darkmoon Faire location. Both follow the server's
+-- calendar day, which starts at midnight server time.
+local BGS = { "Alterac Valley", "Warsong Gulch", "Arathi Basin", "Blood Ring Arena", "Thorn Gorge" }
+local DMF = { "Goldshire", "Thunder Bluff" }
+
+-- Returns { bg, bgNext, bgChangeAt, dmf, dmfNext, dmfDayOff, dmfMoveAt, dmfBackAt }
+-- (times are real clock seconds). The Faire moves out every Wednesday and is back
+-- the next day in the other place.
+function S.ServerEvents(now)
+	now = now or time()
+	local t = date("*t", now)
+	local shift = 0
+	if not (t and t.isdst) then shift = 3600 end
+	local serverNow = now - shift
+	local sday = math.floor(serverNow / DAY)
+
+	local ev = {}
+	ev.bg = BGS[math.mod(sday - 3, 5) + 1]
+	ev.bgNext = BGS[math.mod(sday - 2, 5) + 1]
+	ev.bgChangeAt = (sday + 1) * DAY + shift
+
+	local idx = math.mod(math.floor(sday / 7), 2) + 1
+	ev.dmf = DMF[idx]
+	ev.dmfNext = DMF[3 - idx]
+	-- day 0 was a Thursday, so a day number that leaves 6 when divided by 7 is a Wednesday
+	ev.dmfDayOff = (math.mod(sday, 7) == 6)
+	ev.dmfBackAt = (sday + 1) * DAY + shift
+	ev.dmfMoveAt = (math.floor(sday / 7) + 1) * 7 * DAY - DAY + shift
+	return ev
+end
+
 end)

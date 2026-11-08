@@ -17,6 +17,7 @@ You can also download IRC from OctoWoW's [Gitea](https://octowow.st/git/Fayz/SHa
 - **Instance resets**, the 5 per hour limit, for each character
 - **Raid lockouts**, so you can see at a glance which characters are locked, and to which raid
 - **Server raid resets**, when each raid resets for everyone so you know when you can run it again
+- **Battleground of the day and Darkmoon Faire**, so you know what to queue for and where the Faire is
 
 Everything is recorded automatically while you play. There is nothing to save and no command to run.
 
@@ -62,9 +63,10 @@ You can also start a timer of your own for anything you want to keep an eye on, 
 
 ## Raids tab
 
-The Raids tab has two parts, both separate from your own reset timers.
+The Raids tab has three parts, all separate from your own reset timers.
 
 - **Server raid resets** lists every raid on its own line with its size range and when it resets for everyone, so you know when you can run it again. Raids that share a reset timer, like Molten Core and Naxxramas, show the same time. Edge of Madness also shows which boss is up right now, like Edge of Madness (Wushoolay).
+- **Server events** shows the battleground of the day and tomorrow's, and where the Darkmoon Faire is. The Faire moves out every Wednesday and is back the next day in the other place.
 - **Saved to raids** lists the raids the character picked in the dropdown is saved to, and how long until each save runs out. Pick your Mage from the dropdown while playing your Paladin to check its Zul'Gurub save without logging over. A character's saves are recorded when you play it, so log in on each character once.
 
 ## Using more than one account

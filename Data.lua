@@ -605,6 +605,29 @@ local function RaidsLines(key)
 		table.insert(lines, Note("This realm's schedule is a guess based on N'Zoth."))
 	end
 
+	-- battleground of the day and where the Darkmoon Faire is
+	local ev = S.ServerEvents(now)
+	table.insert(lines, Header("Server events", "changes in"))
+	table.insert(lines, {
+		text = "Battleground of the day  |cff888888(" .. ev.bg .. ")|r",
+		right = S.FormatDuration(ev.bgChangeAt - now),
+		tip = { "Battleground of the day", ev.bg, "Tomorrow: " .. ev.bgNext, "|cffaaaaaaChanges at server midnight|r" },
+	})
+	table.insert(lines, { text = "Tomorrow's battleground  |cff888888(" .. ev.bgNext .. ")|r", right = "" })
+	if ev.dmfDayOff then
+		table.insert(lines, {
+			text = "Darkmoon Faire  |cff888888(Day off)|r",
+			right = "back in " .. S.FormatDuration(ev.dmfBackAt - now),
+			tip = { "Darkmoon Faire", "Day off, it moves out every Wednesday", "Back tomorrow in " .. ev.dmfNext },
+		})
+	else
+		table.insert(lines, {
+			text = "Darkmoon Faire  |cff888888(" .. ev.dmf .. ")|r",
+			right = S.FormatDuration(ev.dmfMoveAt - now),
+			tip = { "Darkmoon Faire", "In " .. ev.dmf .. " now", "It moves out every Wednesday", "Next: " .. ev.dmfNext },
+		})
+	end
+
 	-- the raids the character picked in the dropdown is saved to
 	local c = key and S.db.chars[key]
 	if not c then
