@@ -4,6 +4,7 @@
 local S = SHAlts
 
 local SALT_SHAKER = 15846
+local SHAKER_MAX = 3 * 86400 + 120   -- the longest a Salt Shaker cooldown can be, with a little slack
 
 -- Professions we keep. Matching by English name keeps this independent of
 -- the skill window's header names.
@@ -123,12 +124,16 @@ function S.ScanBags()
 			shaker = true
 			local start, duration = GetContainerItemCooldown(bag, slot)
 			local endsAt = 0
+			local bad = false
 			-- a duration under 1.5s is just the global cooldown
 			if start and duration and start > 0 and duration > 1.5 then
 				local left = start + duration - GetTime()
-				if left > 0 then endsAt = time() + math.floor(left) end
+				-- the Salt Shaker only ever waits 3 days, so a longer reading is the game
+				-- handing back a bad start time, not a real cooldown
+				if left > SHAKER_MAX then bad = true
+				elseif left > 0 then endsAt = time() + math.floor(left) end
 			end
-			SetCooldown(c, "Salt Shaker", endsAt)
+			if bad then c.cd["Salt Shaker"] = nil else SetCooldown(c, "Salt Shaker", endsAt) end
 		end
 	end)
 	if not shaker then c.cd["Salt Shaker"] = nil end

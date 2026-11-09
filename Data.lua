@@ -429,6 +429,18 @@ end
 
 -- finished custom timers are tidied away a day after they ran out
 function S.PruneTimers()
+	-- a Salt Shaker cooldown is never longer than 3 days; clear any impossible one a bad
+	-- game reading left behind, on any character
+	if S.db then
+		local limit = time() + 3 * 86400 + 120
+		local me = S.CharKey()
+		for key, oc in pairs(S.db.chars) do
+			if oc.cd and oc.cd["Salt Shaker"] and oc.cd["Salt Shaker"] > limit then
+				oc.cd["Salt Shaker"] = nil
+				if key == me then S.DataChanged() end
+			end
+		end
+	end
 	local c = S.db and S.db.chars[S.CharKey()]
 	if not c or not c.cd then return end
 	local cutoff = time() - 86400
