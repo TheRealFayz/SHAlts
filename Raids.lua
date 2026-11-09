@@ -24,11 +24,11 @@ end
 S.UTCSeconds = UTC
 
 -- how often each reset timer repeats; raids that share a timer reset together
-local GROUPS = { raid40 = 7, kara = 5, zg = 3, tmh = 7, eom = 14 }
+local GROUPS = { raid40 = 7, ony = 5, kara = 5, zg = 3, tmh = 7, eom = 14 }
 
 -- every raid on its own line, with its size range where it is known
 local RAIDS = {
-	{ name = "Onyxia's Lair",        group = "raid40", size = "20-40" },
+	{ name = "Onyxia's Lair",        group = "ony",    size = "20-40" },
 	{ name = "Molten Core",          group = "raid40", size = "20-40" },
 	{ name = "Blackwing Lair",       group = "raid40", size = "20-40" },
 	{ name = "Emerald Sanctum",      group = "raid40", size = "20-40" },
