@@ -583,6 +583,12 @@ local function RaidsLines(key)
 
 	local sched, assumed = S.RaidSchedule(now)
 	table.insert(lines, Header("Server raid resets", "resets in"))
+	local eom
+	local list = {}
+	for i = 1, table.getn(sched) do
+		if sched[i].boss then eom = sched[i] else table.insert(list, sched[i]) end
+	end
+	sched = list
 	for i = 1, table.getn(sched) do
 		local r = sched[i]
 		local left = r.nextAt - now
@@ -592,13 +598,13 @@ local function RaidsLines(key)
 			label = label .. "  |cff888888(" .. r.size .. ")|r"
 			table.insert(tip, "Raid size " .. r.size .. " players")
 		end
-		if r.boss then
-			label = label .. "  |cff888888(" .. r.boss .. ")|r"
-			table.insert(tip, "Boss this cycle: " .. r.boss)
-		end
 		table.insert(tip, "Resets every " .. r.days .. " days")
 		table.insert(tip, "Next: " .. StampText(r.nextAt))
 		table.insert(tip, "|cffaaaaaaLast: " .. StampText(r.prevAt) .. "|r")
+		-- a labeled divider where the reset interval changes, so raids on the same cycle stay grouped
+		if i == 1 or sched[i - 1].days ~= r.days then
+			table.insert(lines, { text = r.days .. " Day Reset", divider = true })
+		end
 		table.insert(lines, { text = label, right = S.FormatDuration(left), tip = tip })
 	end
 	if assumed then
@@ -625,6 +631,16 @@ local function RaidsLines(key)
 			text = "Darkmoon Faire  |cff888888(" .. ev.dmf .. ")|r",
 			right = S.FormatDuration(ev.dmfMoveAt - now),
 			tip = { "Darkmoon Faire", "In " .. ev.dmf .. " now", "It moves out every Wednesday", "Next: " .. ev.dmfNext },
+		})
+	end
+
+	if eom then
+		table.insert(lines, {
+			text = "Edge of Madness 14 Day Rotation |cff888888(" .. eom.boss .. ")|r",
+			right = S.FormatDuration(eom.bossChangeAt - now),
+			tip = { "Edge of Madness", "Boss now: " .. eom.boss, "Next boss: " .. eom.bossNext,
+				"|cffaaaaaaThe boss changes every 14 days|r",
+				"Raid resets: " .. StampText(eom.nextAt) },
 		})
 	end
 

@@ -209,6 +209,16 @@ local function MakeRow(list, i)
 	b.bg:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
 	b.bg:Hide()
 
+	-- two thin lines either side of centered text, used for section dividers
+	b.lineL = b:CreateTexture(nil, "ARTWORK")
+	b.lineR = b:CreateTexture(nil, "ARTWORK")
+	for _, ln in ipairs({ b.lineL, b.lineR }) do
+		ln:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
+		ln:SetHeight(1)
+		ln:SetVertexColor(.6, .6, .6, .7)
+		ln:Hide()
+	end
+
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetWidth(16); b.icon:SetHeight(16)
 	b.icon:SetPoint("LEFT", b, "LEFT", 4, 0)
@@ -285,6 +295,30 @@ list.fill = function(row, d)
 	end
 	row.text:SetText(d.text or "")
 	row.right:SetText(d.right or "")
+	if S.tab == "raids" and (d.right or "") ~= "" then
+		-- the name may use all the room the countdown beside it leaves
+		local w = row.right:GetStringWidth() or 0
+		row.text:SetWidth(list.rowW - (d.icon and 24 or 6) - w - 14)
+	end
+	if d.divider then
+		-- centered label with a line on each side
+		row.text:ClearAllPoints()
+		row.text:SetPoint("CENTER", row, "CENTER", 0, 0)
+		row.text:SetWidth(list.rowW - 20)
+		row.text:SetJustifyH("CENTER")
+		row.text:SetTextColor(.7, .7, .7)
+		local half = (row.text:GetStringWidth() or 0) / 2 + 6
+		row.lineL:ClearAllPoints()
+		row.lineL:SetPoint("LEFT", row, "LEFT", 6, 0)
+		row.lineL:SetPoint("RIGHT", row, "CENTER", -half, 0)
+		row.lineR:ClearAllPoints()
+		row.lineR:SetPoint("LEFT", row, "CENTER", half, 0)
+		row.lineR:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+		row.lineL:Show(); row.lineR:Show()
+	else
+		row.text:SetJustifyH("LEFT")
+		row.lineL:Hide(); row.lineR:Hide()
+	end
 end
 
 list.enter = function(row)

@@ -28,17 +28,17 @@ local GROUPS = { raid40 = 7, ony = 5, kara = 5, zg = 3, tmh = 7, eom = 14 }
 
 -- every raid on its own line, with its size range where it is known
 local RAIDS = {
-	{ name = "Onyxia's Lair",        group = "ony",    size = "20-40" },
+	{ name = "Timbermaw Hold",       group = "tmh",    size = "12-20" },
 	{ name = "Molten Core",          group = "raid40", size = "20-40" },
 	{ name = "Blackwing Lair",       group = "raid40", size = "20-40" },
 	{ name = "Emerald Sanctum",      group = "raid40", size = "20-40" },
 	{ name = "Temple of Ahn'Qiraj",  group = "raid40", size = "20-40" },
 	{ name = "Naxxramas",            group = "raid40", size = "20-40" },
 	{ name = "Upper Karazhan Halls", group = "raid40", size = "35-40" },
+	{ name = "Onyxia's Lair",        group = "ony",    size = "20-40" },
+	{ name = "Lower Karazhan Halls", group = "kara",   size = "10" },
 	{ name = "Ruins of Ahn'Qiraj",   group = "zg",     size = "12-20" },
 	{ name = "Zul'Gurub",            group = "zg",     size = "12-20" },
-	{ name = "Timbermaw Hold",       group = "tmh",    size = "12-20" },
-	{ name = "Lower Karazhan Halls", group = "kara",   size = "10" },
 	{ name = "Edge of Madness",      group = "eom" },
 }
 
@@ -93,7 +93,10 @@ function S.RaidSchedule(now)
 
 	-- Edge of Madness: the boss in play changes every 14 days, cycling through four
 	local sday = math.floor(serverNow / DAY)
-	local boss = EOM_BOSSES[math.mod(math.floor((sday + 2) / 14), 4) + 1]
+	local cycle = math.floor((sday + 2) / 14)
+	local boss = EOM_BOSSES[math.mod(cycle, 4) + 1]
+	local bossNext = EOM_BOSSES[math.mod(cycle + 1, 4) + 1]
+	local bossChangeAt = ((cycle + 1) * 14 - 2) * DAY + shift
 
 	local out = {}
 	for i = 1, table.getn(RAIDS) do
@@ -103,6 +106,8 @@ function S.RaidSchedule(now)
 			name = r.name, size = r.size, group = r.group, days = t.days,
 			nextAt = t.nextAt, prevAt = t.prevAt,
 			boss = (r.group == "eom") and boss or nil,
+			bossNext = (r.group == "eom") and bossNext or nil,
+			bossChangeAt = (r.group == "eom") and bossChangeAt or nil,
 		})
 	end
 	return out, assumed

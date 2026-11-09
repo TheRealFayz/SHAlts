@@ -65,8 +65,8 @@ You can also start a timer of your own for anything you want to keep an eye on, 
 
 The Raids tab has three parts, all separate from your own reset timers.
 
-- **Server raid resets** lists every raid on its own line with its size range and when it resets for everyone, so you know when you can run it again. Raids that share a reset timer, like Molten Core and Naxxramas, show the same time. Edge of Madness also shows which boss is up right now, like Edge of Madness (Wushoolay).
-- **Server events** shows the battleground of the day and tomorrow's, and where the Darkmoon Faire is. The Faire moves out every Wednesday and is back the next day in the other place.
+- **Server raid resets** lists every raid on its own line with its size range and when it resets for everyone, so you know when you can run it again. The raids are grouped under a "7 Day Reset", "5 Day Reset" or "3 Day Reset" label, and raids in a group reset at the same time.
+- **Server events** shows the battleground of the day and tomorrow's, and where the Darkmoon Faire is. The Faire moves out every Wednesday and is back the next day in the other place. It also shows which Edge of Madness boss is up right now, like Edge of Madness 14 Day Rotation (Wushoolay).
 - **Saved to raids** lists the raids the character picked in the dropdown is saved to, and how long until each save runs out. Pick your Mage from the dropdown while playing your Paladin to check its Zul'Gurub save without logging over. A character's saves are recorded when you play it, so log in on each character once.
 
 ## Using more than one account
