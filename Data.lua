@@ -501,7 +501,7 @@ local function CooldownLines()
 	if table.getn(rows) == 0 then
 		table.insert(lines, Note("No cooldowns recorded yet."))
 	end
-	table.insert(lines, Note("Salt Shaker is tracked while it is in your bags."))
+	table.insert(lines, Note("Salt Shaker is read from your bags, then kept until it is ready."))
 	return lines
 end
 

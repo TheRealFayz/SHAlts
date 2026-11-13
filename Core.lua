@@ -246,6 +246,10 @@ local function Run(msg)
 		else
 			for i = 1, table.getn(rows) do S.Print(rows[i]) end
 		end
+	elseif cmd == "shaker" then
+		if S.ScanBags then S.ScanBags() end
+		local rows = S.ShakerReport and S.ShakerReport() or {}
+		for i = 1, table.getn(rows) do S.Print(rows[i]) end
 	elseif cmd == "quest" then
 		local rows = S.QuestReport and S.QuestReport() or {}
 		for i = 1, table.getn(rows) do S.Print(rows[i]) end

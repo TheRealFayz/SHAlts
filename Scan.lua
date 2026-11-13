@@ -114,6 +114,24 @@ local function SetCooldown(c, name, endsAt)
 	c.cd[name] = endsAt
 end
 
+-- what the game last said about the Salt Shaker, for /shalts shaker
+local lastShaker = nil
+
+-- Look at the Salt Shaker now and then when nothing is known to be running, so a cooldown
+-- that was missed (bags still loading, a bad reading) is picked up without waiting for
+-- a bag change. Does nothing while a cooldown is already counting down.
+local SHAKER_POLL = 30
+function S.ShakerPoll()
+	if not S.db or not S.ready then return end
+	if UnitAffectingCombat and UnitAffectingCombat("player") then return end
+	local c = S.db.chars[S.CharKey()]
+	if not c or not c.cd then return end
+	local cur = c.cd["Salt Shaker"]
+	if cur and cur > time() then return end
+	S.ScanBags()
+	if c.cd["Salt Shaker"] ~= cur then S.DataChanged() end
+end
+
 function S.ScanBags()
 	-- same: a character always has a backpack, so zero slots means "not loaded yet"
 	if not GetContainerNumSlots or (GetContainerNumSlots(0) or 0) < 1 then return end
@@ -133,10 +151,18 @@ function S.ScanBags()
 				if left > SHAKER_MAX then bad = true
 				elseif left > 0 then endsAt = time() + math.floor(left) end
 			end
-			if bad then c.cd["Salt Shaker"] = nil else SetCooldown(c, "Salt Shaker", endsAt) end
+			lastShaker = { start = start, duration = duration, now = GetTime(), bad = bad }
+			-- a bad reading says nothing, so what was saved before stays as it was
+			if not bad then SetCooldown(c, "Salt Shaker", endsAt) end
 		end
 	end)
-	if not shaker then c.cd["Salt Shaker"] = nil end
+	-- A cooldown that is still running keeps counting while the shaker sits in the bank
+	-- or mail, or while the bags are still loading, so it is kept. A shaker that shows
+	-- as ready but is no longer carried is dropped.
+	if not shaker then
+		local cur = c.cd["Salt Shaker"]
+		if cur and cur <= time() then c.cd["Salt Shaker"] = nil end
+	end
 	c.bags = counts
 	c.bagUsed = used
 	c.bagTotal = total
@@ -529,6 +555,7 @@ end)
 -------------------------------------------------------------------------------
 local dirty = {}
 local acc = 0
+local shakerAcc = 0
 S.ready = false
 
 function S.ScanAll()
@@ -547,6 +574,11 @@ S.OnTick = function(elapsed)
 	if acc < 1 then return end
 	if S.StarTick then S.StarTick(acc) end
 	acc = 0
+	shakerAcc = shakerAcc + 1
+	if shakerAcc >= SHAKER_POLL then
+		shakerAcc = 0
+		S.ShakerPoll()
+	end
 
 	local changed = false
 	if dirty.info then dirty.info = nil; S.ScanInfo(); changed = true end
@@ -640,3 +672,24 @@ S.On("TRADE_SKILL_SHOW", function() S.After(.3, function() ScanTradeSkill(true) 
 S.On("TRADE_SKILL_UPDATE", function() ScanTradeSkill(false) end)
 S.On("CRAFT_SHOW", function() S.After(.3, function() ScanCraft(true) end) end)
 S.On("CRAFT_UPDATE", function() ScanCraft(false) end)
+
+-- /shalts shaker: what the game says about the Salt Shaker right now
+function S.ShakerReport()
+	local out = {}
+	local c = S.GetChar()
+	local saved = c and c.cd and c.cd["Salt Shaker"]
+	if saved then
+		local left = saved - time()
+		if left > 0 then table.insert(out, "saved: " .. S.FormatDuration(left) .. " left") else table.insert(out, "saved: ready") end
+	else
+		table.insert(out, "saved: nothing")
+	end
+	if not lastShaker then
+		table.insert(out, "the last scan did not find a Salt Shaker in your bags")
+	else
+		table.insert(out, string.format("game said: start %s, duration %s, game time %s%s",
+			tostring(lastShaker.start), tostring(lastShaker.duration), tostring(lastShaker.now),
+			lastShaker.bad and "  (rejected: longer than 3 days)" or ""))
+	end
+	return out
+end
