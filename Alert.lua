@@ -247,4 +247,79 @@ S.On("PLAYER_LOGIN", function()
 	S.After(CHECK_EVERY, Check)
 end)
 
+-------------------------------------------------------------------------------
+-- Red message across the middle of the screen (the same style the raid warning
+-- uses), with the same text in chat. Used for the login reminders.
+-------------------------------------------------------------------------------
+function S.RedNotice(text)
+	if RaidWarningFrame and RaidWarningFrame.AddMessage then
+		RaidWarningFrame:AddMessage(text, 1.0, 0.1, 0.2, 1.0, 8)
+	end
+	pcall(PlaySound, "RaidWarning")
+	S.Print("|cffff0000" .. text .. "|r")
+end
+
+-------------------------------------------------------------------------------
+-- Login reminder for profession cooldowns that are ready on any of your characters.
+-- Custom timers and cooldowns you switched off in the choose list are left out.
+-------------------------------------------------------------------------------
+local CD_NOTICE_WAIT = 20      -- after the quest reminder, once everything has loaded
+local CD_GIVE_UP = 600         -- stop waiting for a calm moment after this long
+local CD_REPEAT_GAP = 600      -- no second reminder for the same character this soon (/reload)
+local cdLoginAt = 0
+local cdNoticeDone = false
+
+-- how many stored cooldowns are ready right now, and on how many characters
+function S.ReadyCooldownCount()
+	local now = time()
+	local n, chars = 0, 0
+	for key, c in pairs(S.db.chars) do
+		local here = 0
+		for name, endsAt in pairs(c.cd or {}) do
+			local ready = endsAt ~= nil and endsAt <= now
+			local custom = S.IsCustomTimer and S.IsCustomTimer(name)
+			local tracked = not S.CdTracked or S.CdTracked(name)
+			if ready and tracked and not custom then here = here + 1 end
+		end
+		if here > 0 then n = n + here; chars = chars + 1 end
+	end
+	return n, chars
+end
+
+function S.CooldownNoticeText()
+	return "You have profession cooldowns available, please check the Cooldowns and timers tab."
+end
+
+local function CooldownNoticeCheck()
+	if cdNoticeDone then return end
+	if not S.db or not S.ready then S.After(3, CooldownNoticeCheck); return end
+	local waited = GetTime() - cdLoginAt
+	if waited > CD_GIVE_UP then cdNoticeDone = true; return end
+	if waited < CD_NOTICE_WAIT then S.After(3, CooldownNoticeCheck); return end
+	if not S.CalmNow() then S.After(3, CooldownNoticeCheck); return end
+
+	cdNoticeDone = true
+	if S.db.cdNotice == false then return end
+	if S.ReadyCooldownCount() == 0 then return end        -- nothing ready: say nothing
+	if type(S.db.cdNoticeAt) ~= "table" then S.db.cdNoticeAt = {} end
+	local key = S.CharKey()
+	local last = S.db.cdNoticeAt[key]
+	if last and time() - last < CD_REPEAT_GAP and time() >= last then return end
+	S.db.cdNoticeAt[key] = time()
+	S.RedNotice(S.CooldownNoticeText())
+end
+
+S.On("PLAYER_LOGIN", function()
+	cdLoginAt = GetTime()
+	cdNoticeDone = false
+	S.After(CD_NOTICE_WAIT, CooldownNoticeCheck)
+end)
+
+-- true when nothing is going on that a message would get in the way of
+function S.CalmNow()
+	if UnitAffectingCombat and UnitAffectingCombat("player") then return false end
+	if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return false end
+	return true
+end
+
 end)

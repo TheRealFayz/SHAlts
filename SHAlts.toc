@@ -14,3 +14,4 @@ Star.lua
 Alert.lua
 Resets.lua
 Raids.lua
+Quests.lua

@@ -246,6 +246,9 @@ local function Run(msg)
 		else
 			for i = 1, table.getn(rows) do S.Print(rows[i]) end
 		end
+	elseif cmd == "quest" then
+		local rows = S.QuestReport and S.QuestReport() or {}
+		for i = 1, table.getn(rows) do S.Print(rows[i]) end
 	elseif cmd == "resetdebug" then
 		S.ToggleResetDebug()
 	elseif cmd == "star" then

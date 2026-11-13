@@ -113,6 +113,20 @@ function S.RaidSchedule(now)
 	return out, assumed
 end
 
+-- The weekly quest week runs Thursday to Thursday and turns over at server midnight,
+-- the same moment the Darkmoon Faire changes place. Returns when this week started
+-- and when the next begins (real clock seconds).
+function S.WeeklyQuestWindow(now)
+	now = now or time()
+	local t = date("*t", now)
+	local shift = 0
+	if not (t and t.isdst) then shift = 3600 end
+	local sday = math.floor((now - shift) / DAY)
+	-- day number 0 was a Thursday, so every multiple of 7 starts a new week
+	local week = math.floor(sday / 7)
+	return week * 7 * DAY + shift, (week + 1) * 7 * DAY + shift
+end
+
 -- Battleground of the day and the Darkmoon Faire location. Both follow the server's
 -- calendar day, which starts at midnight server time.
 local BGS = { "Alterac Valley", "Warsong Gulch", "Arathi Basin", "Blood Ring Arena", "Thorn Gorge" }

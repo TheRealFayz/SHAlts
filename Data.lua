@@ -656,6 +656,9 @@ local function RaidsLines(key)
 		})
 	end
 
+	local _, weeklyNext = S.WeeklyQuestWindow(now)
+	table.insert(lines, { text = "Weekly Dungeon Quests", right = S.FormatDuration(weeklyNext - now) })
+
 	-- the raids the character picked in the dropdown is saved to
 	local c = key and S.db.chars[key]
 	if not c then
